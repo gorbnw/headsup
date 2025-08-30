@@ -111,6 +111,10 @@
     <div id="resultsContent"></div>
   </div>
 
+  <audio id="startSound" src="start.mp3"></audio>
+  <audio id="countdownSound" src="countdown.mp3"></audio>
+  <audio id="endSound" src="end.mp3"></audio>
+
   <script>
     const startBtn = document.getElementById('startBtn');
     const timeInput = document.getElementById('timeInput');
@@ -120,6 +124,10 @@
     const resultsContent = document.getElementById('resultsContent');
     const controlsEl = document.getElementById('controls');
     const presetSelect = document.getElementById('presetSelect');
+
+    const startSound = document.getElementById('startSound');
+    const countdownSound = document.getElementById('countdownSound');
+    const endSound = document.getElementById('endSound');
 
     let words = [];
     let availableWords = [];
@@ -177,6 +185,7 @@
       resultHtml += `</ul><p>(Click anywhere to continue)</p>`;
       resultsContent.innerHTML = resultHtml;
       resultsOverlay.style.display = 'flex';
+      endSound.play();
     }
 
     function nextWord(isCorrect) {
@@ -204,10 +213,13 @@
       showWord();
       playing = true;
 
+      startSound.play();
+
       timerEl.textContent = `Time: ${timeLeft}`;
       interval = setInterval(() => {
         timeLeft--;
         timerEl.textContent = `Time: ${timeLeft}`;
+        if (timeLeft > 0 && timeLeft < 10) countdownSound.play();
         if (timeLeft <= 0) endGame(true);
       }, 1000);
     });
