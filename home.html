@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Word Practice</title>
+  <style>
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      text-align: center;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #ffb6c1, #98ff98, #ffd1dc, #39ff14);
+      color: #000;
+    }
+    #gameArea {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6em;
+      font-weight: bold;
+      text-shadow: 2px 2px 8px #fff;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s, color 0.2s;
+    }
+    #gameArea:active {
+      transform: scale(0.95);
+      color: #ff69b4;
+    }
+    #timer {
+      font-size: 2em;
+      margin: 10px;
+      font-weight: bold;
+      text-shadow: 1px 1px 3px #fff;
+    }
+    #controls {
+      margin: 15px;
+      background: rgba(255, 255, 255, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(5px);
+    }
+    #resultsOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      color: #000;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      cursor: pointer;
+    }
+    #resultsContent {
+      background: rgba(255,255,255,0.95);
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+    .correct { color: #39ff14; font-weight: bold; }
+    .missed { color: #ff69b4; font-weight: bold; }
+    #resultsContent ul { list-style: none; padding: 0; margin: 0; }
+    button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+      background: #ffb6c1;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s, color 0.3s;
+    }
+    button:hover {
+      background: #39ff14;
+      color: #000;
+    }
+    select, input[type=number] {
+      font-size: 1.2em;
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Word Practice Game</h1>
+  <div id="controls">
+    <label for="presetSelect">Choose a word list:</label>
+    <select id="presetSelect">
+      <option value="animals">Animals</option>
+      <option value="fruits">Fruits</option>
+      <option value="colors">Colors</option>
+    </select><br><br>
+
+    <label>Timer (seconds): <input type="number" id="timeInput" value="30"></label><br><br>
+    <button id="startBtn">Start</button>
+  </div>
+
+  <div id="timer" style="display:none"></div>
+  <div id="gameArea" style="display:none"></div>
+
+  <div id="resultsOverlay">
+    <div id="resultsContent"></div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const timeInput = document.getElementById('timeInput');
+    const timerEl = document.getElementById('timer');
+    const gameArea = document.getElementById('gameArea');
+    const resultsOverlay = document.getElementById('resultsOverlay');
+    const resultsContent = document.getElementById('resultsContent');
+    const controlsEl = document.getElementById('controls');
+    const presetSelect = document.getElementById('presetSelect');
+
+    const presets = {
+      animals: ["cat","dog","lion","tiger","elephant","zebra","giraffe","bear"],
+      fruits: ["apple","banana","cherry","grape","mango","pear","peach","plum"],
+      colors: ["red","blue","green","yellow","purple","orange","black","white"]
+    };
+
+    let words = [];
+    let availableWords = [];
+    let currentWord = "";
+    let results = [];
+    let timeLeft = 0;
+    let interval = null;
+    let playing = false;
+
+    function showWord() {
+      if (availableWords.length === 0) {
+        endGame(true); // mark last word as missed
+        return;
+      }
+      const i = Math.floor(Math.random() * availableWords.length);
+      currentWord = availableWords.splice(i, 1)[0];
+      gameArea.textContent = currentWord;
+    }
+
+    function endGame(includeCurrent = false) {
+      playing = false;
+      clearInterval(interval);
+      gameArea.style.display = "none";
+      timerEl.style.display = "none";
+
+      if (includeCurrent && currentWord) {
+        results.push({word: currentWord, correct: false});
+      }
+
+      const correctCount = results.filter(r => r.correct).length;
+      const total = results.length;
+      let resultHtml = `<p>Score: ${correctCount} / ${total}</p><ul>`;
+      results.forEach(r => {
+        resultHtml += `<li class='${r.correct ? "correct" : "missed"}'>${r.word}</li>`;
+      });
+      resultHtml += `</ul><p>(Click anywhere to continue)</p>`;
+      resultsContent.innerHTML = resultHtml;
+      resultsOverlay.style.display = 'flex';
+    }
+
+    function nextWord(isCorrect) {
+      if (!playing) return;
+      results.push({word: currentWord, correct: isCorrect});
+      showWord();
+    }
+
+    startBtn.addEventListener('click', () => {
+      const preset = presetSelect.value;
+      words = [...presets[preset]];
+
+      if (words.length === 0) return alert("Please select a word list.");
+
+      availableWords = [...words];
+      results = [];
+      resultsContent.textContent = "";
+      timeLeft = parseInt(timeInput.value) || 30;
+      controlsEl.style.display = "none";
+      gameArea.style.display = "flex";
+      timerEl.style.display = "block";
+      resultsOverlay.style.display = 'none';
+
+      showWord();
+      playing = true;
+
+      timerEl.textContent = `Time: ${timeLeft}`;
+      interval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `Time: ${timeLeft}`;
+        if (timeLeft <= 0) endGame(true);
+      }, 1000);
+    });
+
+    gameArea.addEventListener('click', (e) => {
+      if (!playing) return;
+      const mid = window.innerWidth / 2;
+      nextWord(e.clientX >= mid);
+    });
+
+    resultsOverlay.addEventListener('click', () => {
+      resultsOverlay.style.display = 'none';
+      controlsEl.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
