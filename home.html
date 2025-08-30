@@ -5,7 +5,7 @@
   <title>Word Practice</title>
   <style>
     body {
-      font-family: 'Comic Sans MS', cursive, sans-serif;
+      font-family: 'Comic Sans MS', Arial, sans-serif;
       text-align: center;
       margin: 0;
       height: 100vh;
@@ -126,10 +126,7 @@
     let interval = null;
     let playing = false;
 
-    // Load all txt files in the same folder dynamically
     async function loadWordLists() {
-      // Note: Browsers cannot list folder contents due to security.
-      // We'll assume you know the filenames and list them manually here.
       const listFiles = ['animals.txt', 'fruits.txt', 'colors.txt'];
       for (const file of listFiles) {
         try {
