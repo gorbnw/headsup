@@ -95,11 +95,7 @@
   <h1>Word Practice Game</h1>
   <div id="controls">
     <label for="presetSelect">Choose a word list:</label>
-    <select id="presetSelect">
-      <option value="animals">Animals</option>
-      <option value="fruits">Fruits</option>
-      <option value="colors">Colors</option>
-    </select><br><br>
+    <select id="presetSelect"></select><br><br>
 
     <label>Timer (seconds): <input type="number" id="timeInput" value="30"></label><br><br>
     <button id="startBtn">Start</button>
@@ -122,12 +118,6 @@
     const controlsEl = document.getElementById('controls');
     const presetSelect = document.getElementById('presetSelect');
 
-    const presets = {
-      animals: ["cat","dog","lion","tiger","elephant","zebra","giraffe","bear"],
-      fruits: ["apple","banana","cherry","grape","mango","pear","peach","plum"],
-      colors: ["red","blue","green","yellow","purple","orange","black","white"]
-    };
-
     let words = [];
     let availableWords = [];
     let currentWord = "";
@@ -136,9 +126,31 @@
     let interval = null;
     let playing = false;
 
+    // Load all txt files in the same folder dynamically
+    async function loadWordLists() {
+      // Note: Browsers cannot list folder contents due to security.
+      // We'll assume you know the filenames and list them manually here.
+      const listFiles = ['animals.txt', 'fruits.txt', 'colors.txt'];
+      for (const file of listFiles) {
+        try {
+          const response = await fetch(file);
+          const text = await response.text();
+          const wordsArray = text.split(/\r?\n/).filter(w => w.trim() !== '');
+          const title = file.replace('.txt','');
+          const option = document.createElement('option');
+          option.value = title;
+          option.textContent = title.charAt(0).toUpperCase() + title.slice(1);
+          option.dataset.words = JSON.stringify(wordsArray);
+          presetSelect.appendChild(option);
+        } catch(e) {
+          console.error(`Failed to load ${file}:`, e);
+        }
+      }
+    }
+
     function showWord() {
       if (availableWords.length === 0) {
-        endGame(true); // mark last word as missed
+        endGame(true);
         return;
       }
       const i = Math.floor(Math.random() * availableWords.length);
@@ -174,10 +186,11 @@
     }
 
     startBtn.addEventListener('click', () => {
-      const preset = presetSelect.value;
-      words = [...presets[preset]];
+      const selectedOption = presetSelect.selectedOptions[0];
+      if (!selectedOption) return alert("Please select a word list.");
+      words = JSON.parse(selectedOption.dataset.words);
 
-      if (words.length === 0) return alert("Please select a word list.");
+      if (words.length === 0) return alert("Selected word list is empty.");
 
       availableWords = [...words];
       results = [];
@@ -209,6 +222,8 @@
       resultsOverlay.style.display = 'none';
       controlsEl.style.display = 'block';
     });
+
+    loadWordLists();
   </script>
 </body>
 </html>
