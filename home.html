@@ -111,9 +111,9 @@
     <div id="resultsContent"></div>
   </div>
 
-  <audio id="startSound" src="start.wav"></audio>
-  <audio id="countdownSound" src="start.wav"></audio>
-  <audio id="endSound" src="start.wav"></audio>
+  <audio id="startSound"></audio>
+  <audio id="countdownSound"></audio>
+  <audio id="endSound"></audio>
 
   <script>
     const startBtn = document.getElementById('startBtn');
@@ -128,6 +128,11 @@
     const startSound = document.getElementById('startSound');
     const countdownSound = document.getElementById('countdownSound');
     const endSound = document.getElementById('endSound');
+
+    // Use WAV files
+    startSound.src = 'start.wav';
+    countdownSound.src = 'countdown.wav';
+    endSound.src = 'end.wav';
 
     let words = [];
     let availableWords = [];
@@ -185,7 +190,7 @@
       resultHtml += `</ul><p>(Click anywhere to continue)</p>`;
       resultsContent.innerHTML = resultHtml;
       resultsOverlay.style.display = 'flex';
-      endSound.play();
+      endSound.play().catch(e => console.log('End sound could not play:', e));
     }
 
     function nextWord(isCorrect) {
@@ -213,13 +218,15 @@
       showWord();
       playing = true;
 
-      startSound.play();
+      startSound.play().catch(e => console.log('Start sound could not play:', e));
 
       timerEl.textContent = `Time: ${timeLeft}`;
       interval = setInterval(() => {
         timeLeft--;
         timerEl.textContent = `Time: ${timeLeft}`;
-        if (timeLeft > 0 && timeLeft < 10) countdownSound.play();
+        if (timeLeft > 0 && timeLeft < 10) {
+          countdownSound.play().catch(e => console.log('Countdown sound could not play:', e));
+        }
         if (timeLeft <= 0) endGame(true);
       }, 1000);
     });
