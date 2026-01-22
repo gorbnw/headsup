@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Word Practice</title>
+  <title>Strings and Things 🧶</title>
   <style>
     body {
       font-family: 'Comic Sans MS', Arial, sans-serif;
@@ -27,7 +27,6 @@
       user-select: none;
       transition: transform 0.1s, color 0.2s;
 
-      /* ✅ WORD FIT FIX */
       padding: 20px;
       max-width: 95vw;
       text-align: center;
@@ -61,12 +60,8 @@
     #resultsOverlay {
       display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       background: rgba(0,0,0,0.7);
-      color: #000;
       justify-content: center;
       align-items: center;
       z-index: 1000;
@@ -77,14 +72,13 @@
       background: rgba(255,255,255,0.95);
       padding: 40px;
       border-radius: 15px;
-      text-align: center;
       max-height: 80%;
       overflow-y: auto;
       font-size: 1.5em;
     }
 
     .correct { color: #39ff14; font-weight: bold; }
-    .missed { color: #ff69b4; font-weight: bold; }
+    .missed  { color: #ff69b4; font-weight: bold; }
 
     #resultsContent ul {
       list-style: none;
@@ -98,15 +92,12 @@
       border: none;
       border-radius: 10px;
       background: #ffb6c1;
-      color: #000;
       cursor: pointer;
       font-weight: bold;
-      transition: background 0.3s, color 0.3s;
     }
 
     button:hover {
       background: #39ff14;
-      color: #000;
     }
 
     select, input[type=number] {
@@ -118,14 +109,14 @@
   </style>
 </head>
 <body>
-  <h1>Word Practice Game</h1>
+  <h1>Strings and Things 🧶</h1>
 
   <div id="controls">
     <label for="presetSelect">Choose a word list:</label>
     <select id="presetSelect"></select><br><br>
 
     <label>Timer (seconds):
-      <input type="number" id="timeInput" value="30">
+      <input type="number" id="timeInput" value="60">
     </label><br><br>
 
     <button id="startBtn">Start</button>
@@ -138,9 +129,9 @@
     <div id="resultsContent"></div>
   </div>
 
-  <audio id="startSound"></audio>
-  <audio id="countdownSound"></audio>
-  <audio id="endSound"></audio>
+  <audio id="startSound" src="start.wav"></audio>
+  <audio id="countdownSound" src="countdown.wav"></audio>
+  <audio id="endSound" src="end.wav"></audio>
 
   <script>
     const startBtn = document.getElementById('startBtn');
@@ -152,16 +143,9 @@
     const controlsEl = document.getElementById('controls');
     const presetSelect = document.getElementById('presetSelect');
 
-    const startSound = document.getElementById('startSound');
-    const countdownSound = document.getElementById('countdownSound');
-    const endSound = document.getElementById('endSound');
-
-    startSound.src = 'start.wav';
-    countdownSound.src = 'countdown.wav';
-    endSound.src = 'end.wav';
-
     let words = [];
     let availableWords = [];
+    let usedWords = new Set();
     let currentWord = "";
     let results = [];
     let timeLeft = 0;
@@ -171,19 +155,14 @@
     async function loadWordLists() {
       const listFiles = ['fruits.txt', '90s.txt'];
       for (const file of listFiles) {
-        try {
-          const response = await fetch(file);
-          const text = await response.text();
-          const wordsArray = text.split(/\r?\n/).filter(w => w.trim() !== '');
-          const title = file.replace('.txt','');
-          const option = document.createElement('option');
-          option.value = title;
-          option.textContent = title.charAt(0).toUpperCase() + title.slice(1);
-          option.dataset.words = JSON.stringify(wordsArray);
-          presetSelect.appendChild(option);
-        } catch(e) {
-          console.error(`Failed to load ${file}:`, e);
-        }
+        const res = await fetch(file);
+        const text = await res.text();
+        const list = text.split(/\r?\n/).filter(Boolean);
+
+        const opt = document.createElement('option');
+        opt.textContent = file.replace('.txt','');
+        opt.dataset.words = JSON.stringify(list);
+        presetSelect.appendChild(opt);
       }
     }
 
@@ -194,54 +173,64 @@
       }
       const i = Math.floor(Math.random() * availableWords.length);
       currentWord = availableWords.splice(i, 1)[0];
+      usedWords.add(currentWord);
       gameArea.textContent = currentWord;
     }
 
     function endGame(includeCurrent = false) {
       playing = false;
       clearInterval(interval);
+
       gameArea.style.display = "none";
       timerEl.style.display = "none";
 
       if (includeCurrent && currentWord) {
-        results.push({word: currentWord, correct: false});
+        results.push({ word: currentWord, correct: false });
       }
 
-      const correctCount = results.filter(r => r.correct).length;
-      const total = results.length;
-      let resultHtml = `<p>Score: ${correctCount} / ${total}</p><ul>`;
-      results.forEach(r => {
-        resultHtml += `<li class='${r.correct ? "correct" : "missed"}'>${r.word}</li>`;
-      });
-      resultHtml += `</ul><p>(Click anywhere to continue)</p>`;
-      resultsContent.innerHTML = resultHtml;
+      const correct = results.filter(r => r.correct).length;
+      resultsContent.innerHTML =
+        `<p>Score: ${correct} / ${results.length}</p>
+         <ul>
+           ${results.map(r =>
+             `<li class="${r.correct ? 'correct' : 'missed'}">${r.word}</li>`
+           ).join('')}
+         </ul>
+         <p>(Tap to restart)</p>`;
+
       resultsOverlay.style.display = 'flex';
-      endSound.play().catch(()=>{});
+      document.getElementById('endSound').play().catch(()=>{});
     }
 
-    function nextWord(isCorrect) {
+    function nextWord(correct) {
       if (!playing) return;
-      results.push({word: currentWord, correct: isCorrect});
+      results.push({ word: currentWord, correct });
       showWord();
     }
 
-    startBtn.addEventListener('click', () => {
-      const selectedOption = presetSelect.selectedOptions[0];
-      if (!selectedOption) return alert("Please select a word list.");
+    startBtn.onclick = () => {
+      const opt = presetSelect.selectedOptions[0];
+      if (!opt) return;
 
-      words = JSON.parse(selectedOption.dataset.words);
-      availableWords = [...words];
+      words = JSON.parse(opt.dataset.words);
+
+      availableWords = words.filter(w => !usedWords.has(w));
+      if (availableWords.length === 0) {
+        usedWords.clear();
+        availableWords = [...words];
+      }
+
       results = [];
-      timeLeft = parseInt(timeInput.value) || 30;
+      timeLeft = +timeInput.value || 60;
 
       controlsEl.style.display = "none";
       gameArea.style.display = "flex";
       timerEl.style.display = "block";
-      resultsOverlay.style.display = 'none';
+      resultsOverlay.style.display = "none";
 
       showWord();
       playing = true;
-      startSound.play().catch(()=>{});
+      document.getElementById('startSound').play().catch(()=>{});
 
       timerEl.textContent = `Time: ${timeLeft}`;
       interval = setInterval(() => {
@@ -249,23 +238,22 @@
         timerEl.textContent = `Time: ${timeLeft}`;
 
         if (timeLeft > 0 && timeLeft < 10) {
-          countdownSound.play().catch(()=>{});
+          document.getElementById('countdownSound').play().catch(()=>{});
         }
 
         if (timeLeft <= 0) endGame(true);
       }, 1000);
-    });
+    };
 
-    gameArea.addEventListener('click', (e) => {
+    gameArea.onclick = e => {
       if (!playing) return;
-      const mid = window.innerWidth / 2;
-      nextWord(e.clientX >= mid);
-    });
+      nextWord(e.clientX > innerWidth / 2);
+    };
 
-    resultsOverlay.addEventListener('click', () => {
+    resultsOverlay.onclick = () => {
       resultsOverlay.style.display = 'none';
       controlsEl.style.display = 'block';
-    });
+    };
 
     loadWordLists();
   </script>
