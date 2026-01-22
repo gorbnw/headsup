@@ -134,6 +134,7 @@
   <audio id="endSound" src="end.wav"></audio>
 
   <script>
+    const presetSelect = document.getElementById('presetSelect');
     const startBtn = document.getElementById('startBtn');
     const timeInput = document.getElementById('timeInput');
     const timerEl = document.getElementById('timer');
@@ -141,7 +142,6 @@
     const resultsOverlay = document.getElementById('resultsOverlay');
     const resultsContent = document.getElementById('resultsContent');
     const controlsEl = document.getElementById('controls');
-    const presetSelect = document.getElementById('presetSelect');
 
     let words = [];
     let availableWords = [];
@@ -152,18 +152,31 @@
     let interval = null;
     let playing = false;
 
-    async function loadWordLists() {
-      const listFiles = ['fruits.txt', '90s.txt'];
-      for (const file of listFiles) {
-        const res = await fetch(file);
-        const text = await res.text();
-        const list = text.split(/\r?\n/).filter(Boolean);
+    function prettyName(filename) {
+      return filename
+        .replace('.txt','')
+        .replace(/[_-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
 
-        const opt = document.createElement('option');
-        opt.textContent = file.replace('.txt','');
-        opt.dataset.words = JSON.stringify(list);
-        presetSelect.appendChild(opt);
-      }
+    async function loadWordLists() {
+      const res = await fetch('index.json');
+      const files = await res.json();
+
+      files
+        .sort((a, b) => prettyName(a).localeCompare(prettyName(b)))
+        .forEach(file => {
+          const option = document.createElement('option');
+          option.textContent = prettyName(file);
+          option.value = file;
+          presetSelect.appendChild(option);
+        });
+    }
+
+    async function loadWords(file) {
+      const res = await fetch(`lists/${file}`);
+      const text = await res.text();
+      return text.split(/\r?\n/).filter(Boolean);
     }
 
     function showWord() {
@@ -191,11 +204,9 @@
       const correct = results.filter(r => r.correct).length;
       resultsContent.innerHTML =
         `<p>Score: ${correct} / ${results.length}</p>
-         <ul>
-           ${results.map(r =>
-             `<li class="${r.correct ? 'correct' : 'missed'}">${r.word}</li>`
-           ).join('')}
-         </ul>
+         <ul>${results.map(r =>
+           `<li class="${r.correct ? 'correct' : 'missed'}">${r.word}</li>`
+         ).join('')}</ul>
          <p>(Tap to restart)</p>`;
 
       resultsOverlay.style.display = 'flex';
@@ -208,11 +219,11 @@
       showWord();
     }
 
-    startBtn.onclick = () => {
-      const opt = presetSelect.selectedOptions[0];
-      if (!opt) return;
+    startBtn.onclick = async () => {
+      const file = presetSelect.value;
+      if (!file) return;
 
-      words = JSON.parse(opt.dataset.words);
+      words = await loadWords(file);
 
       availableWords = words.filter(w => !usedWords.has(w));
       if (availableWords.length === 0) {
