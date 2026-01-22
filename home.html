@@ -15,28 +15,40 @@
       color: #000;
       font-size: 1.5em;
     }
+
     #gameArea {
       flex: 3;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10em;
       font-weight: bold;
       text-shadow: 2px 2px 8px #fff;
       cursor: pointer;
       user-select: none;
       transition: transform 0.1s, color 0.2s;
+
+      /* ✅ WORD FIT FIX */
+      padding: 20px;
+      max-width: 95vw;
+      text-align: center;
+      line-height: 1.1;
+      word-break: break-word;
+      white-space: normal;
+      font-size: clamp(2.5rem, 8vw, 10rem);
     }
+
     #gameArea:active {
       transform: scale(0.95);
       color: #ff69b4;
     }
+
     #timer {
       font-size: 3em;
       margin: 20px;
       font-weight: bold;
       text-shadow: 1px 1px 3px #fff;
     }
+
     #controls {
       margin: 20px;
       background: rgba(255, 255, 255, 0.3);
@@ -45,6 +57,7 @@
       backdrop-filter: blur(5px);
       font-size: 1.5em;
     }
+
     #resultsOverlay {
       display: none;
       position: fixed;
@@ -59,6 +72,7 @@
       z-index: 1000;
       cursor: pointer;
     }
+
     #resultsContent {
       background: rgba(255,255,255,0.95);
       padding: 40px;
@@ -68,9 +82,16 @@
       overflow-y: auto;
       font-size: 1.5em;
     }
+
     .correct { color: #39ff14; font-weight: bold; }
     .missed { color: #ff69b4; font-weight: bold; }
-    #resultsContent ul { list-style: none; padding: 0; margin: 0; }
+
+    #resultsContent ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
     button {
       padding: 15px 30px;
       font-size: 1.5em;
@@ -82,10 +103,12 @@
       font-weight: bold;
       transition: background 0.3s, color 0.3s;
     }
+
     button:hover {
       background: #39ff14;
       color: #000;
     }
+
     select, input[type=number] {
       font-size: 1.5em;
       padding: 10px;
@@ -96,11 +119,15 @@
 </head>
 <body>
   <h1>Word Practice Game</h1>
+
   <div id="controls">
     <label for="presetSelect">Choose a word list:</label>
     <select id="presetSelect"></select><br><br>
 
-    <label>Timer (seconds): <input type="number" id="timeInput" value="30"></label><br><br>
+    <label>Timer (seconds):
+      <input type="number" id="timeInput" value="30">
+    </label><br><br>
+
     <button id="startBtn">Start</button>
   </div>
 
@@ -129,7 +156,6 @@
     const countdownSound = document.getElementById('countdownSound');
     const endSound = document.getElementById('endSound');
 
-    // Use WAV files
     startSound.src = 'start.wav';
     countdownSound.src = 'countdown.wav';
     endSound.src = 'end.wav';
@@ -190,7 +216,7 @@
       resultHtml += `</ul><p>(Click anywhere to continue)</p>`;
       resultsContent.innerHTML = resultHtml;
       resultsOverlay.style.display = 'flex';
-      endSound.play().catch(e => console.log('End sound could not play:', e));
+      endSound.play().catch(()=>{});
     }
 
     function nextWord(isCorrect) {
@@ -202,14 +228,12 @@
     startBtn.addEventListener('click', () => {
       const selectedOption = presetSelect.selectedOptions[0];
       if (!selectedOption) return alert("Please select a word list.");
+
       words = JSON.parse(selectedOption.dataset.words);
-
-      if (words.length === 0) return alert("Selected word list is empty.");
-
       availableWords = [...words];
       results = [];
-      resultsContent.textContent = "";
       timeLeft = parseInt(timeInput.value) || 30;
+
       controlsEl.style.display = "none";
       gameArea.style.display = "flex";
       timerEl.style.display = "block";
@@ -217,16 +241,17 @@
 
       showWord();
       playing = true;
-
-      startSound.play().catch(e => console.log('Start sound could not play:', e));
+      startSound.play().catch(()=>{});
 
       timerEl.textContent = `Time: ${timeLeft}`;
       interval = setInterval(() => {
         timeLeft--;
         timerEl.textContent = `Time: ${timeLeft}`;
+
         if (timeLeft > 0 && timeLeft < 10) {
-          countdownSound.play().catch(e => console.log('Countdown sound could not play:', e));
+          countdownSound.play().catch(()=>{});
         }
+
         if (timeLeft <= 0) endGame(true);
       }, 1000);
     });
